@@ -7,6 +7,8 @@
 #include <ICM_20948.h>
 #include "Types.h"
 #include "Config.h"
+#include <Adafruit_BMP280.h>
+#include <Adafruit_Sensor.h>
 
 namespace itc {
 
@@ -71,6 +73,21 @@ class RangeSensor {
   bool accepted_ = false;
   uint32_t previousPollTimeUs_ = 0;
   uint32_t previousFilterTimeUs_ = 0;
+};
+// Reads air pressure and temperature from the BMP280 on Wire1.
+class Barometer {
+ public:
+  bool begin();
+  const BarometerState& update(uint32_t currentTimeUs);
+
+  const BarometerState& state() const {
+    return state_;
+  }
+
+ private:
+  Adafruit_BMP280 device_{&Wire1};
+  BarometerState state_;
+  uint32_t previousPollTimeUs_ = 0;
 };
 
 } // namespace itc

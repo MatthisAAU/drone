@@ -260,6 +260,7 @@ const RangeState& RangeSensor::update(const Attitude& attitude, uint32_t current
   state_.status = uint8_t(device_.ranging_data.range_status);
   state_.slantM = distanceMm * 0.001f;
 
+
   // Over level ground, tilting the downward sensor makes its beam path longer.
   // Multiplying by the two cosines estimates the vertical distance instead.
   state_.rawHeightM = state_.slantM
@@ -295,5 +296,48 @@ const RangeState& RangeSensor::update(const Attitude& attitude, uint32_t current
   state_.valid = measurementAcceptable;
   return state_;
 }
+bool Barometer::begin() {
+  // The BMP280 shares Wire1 with the VL53L1X. Starting the bus again is
+  // harmless and lets this class also work on its own in test programs.
+  Wire1.setSCL(config::RANGE_SCL);
+  Wire1.setSDA(config::RANGE_SDA);
+  Wire1.begin();
+  Wire1.setClock(config::RANGE_I2C_HZ);
 
+  state_.started = device_.begin(config::BARO_I2C_ADDRESS);
+  if (state_.started) {
+    // Temperature sampling must stay ON: the chip needs it to correct pressure.
+    device_.setSampling(Adafruit_BMP280::MODE_NORMAL,
+                        Adafruit_BMP280::SAMPLING_X2,    // temperature
+                        Adafruit_BMP280::SAMPLING_X16,   // pressure
+                        Adafruit_BMP280::FILTER_X16,
+                        Adafruit_BMP280::STANDBY_MS_1);
+  }
+  return state_.started;
+}
+
+const BarometerState& Barometer::update(uint32_t currentTimeUs) {
+  // 1. Only read every BARO_POLL_US. Otherwise return the last result.
+  if (!state_.started
+      || uint32_t(currentTimeUs - previousPollTimeUs_) < config::BARO_POLL_US) {
+    return state_;
+  }
+  previousPollTimeUs_ = currentTimeUs;
+
+  // 2. Read pressure. readPressure() measures temperature internally itself.
+  const float pressurePa = device_.readPressure();
+
+  // 3. Accept only realistic values (300..1100 hPa).
+  state_.valid = isfinite(pressurePa)
+      && pressurePa > 30000.0f && pressurePa < 110000.0f;
+
+  // 4. Store the good reading.
+  if (state_.valid) {
+    state_.pressurePa = pressurePa;
+    state_.altitudeM = 44330.0f
+        * (1.0f - powf(pressurePa / 100.0f / config::BARO_SEA_LEVEL_HPA, 0.1903f));
+    state_.sampleUs = currentTimeUs;
+  }
+  return state_;
+}
 } // namespace itc

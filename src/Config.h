@@ -11,7 +11,7 @@
 //
 // These choices take effect when the sketch is compiled, not while it is running.
 #ifndef ITC_OUTPUT_MODE
-#define ITC_OUTPUT_MODE 2
+#define ITC_OUTPUT_MODE 0
 #endif
 
 #if ITC_OUTPUT_MODE < 0 || ITC_OUTPUT_MODE > 3
@@ -169,6 +169,13 @@ constexpr float HEIGHT_LANDING_MARGIN_M = 0.03f;
 constexpr float HEIGHT_LANDING_SPEED_MPS = 0.08f;
 constexpr float HEIGHT_ZERO_REQUEST_M = 0.01f;
 constexpr uint32_t HEIGHT_SETTLE_US = 500000; // Remain near resting height for 0.5 s before stop.
+
+constexpr uint8_t BARO_I2C_ADDRESS = 0x76;    
+constexpr uint32_t BARO_POLL_US = 40000;       // Read every 40 ms 
+constexpr float BARO_SEA_LEVEL_HPA = 1013.25f; // sealevel pressure for the altitude formula.
+
+
+
 
 // A mistake here should fail compilation rather than start motors during calibration.
 static_assert(!CALIBRATE_IMU_ON_BOOT || ITC_OUTPUT_MODE == 0,

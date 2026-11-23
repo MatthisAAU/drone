@@ -93,7 +93,15 @@ struct RangeState {
   bool started = false;
   bool valid = false;      // Is the most recent range result acceptable?
 };
-
+// One barometer result. NAN means "no usable number yet".
+struct BarometerState {
+  float pressurePa = NAN;     // Air pressure in pascal (about 101325 at sea level).
+  float temperatureC = NAN;   // Temperature of the sensor chip, degrees Celsius.
+  float altitudeM = NAN;      // Altitude calculated from pressure, metres.
+  uint32_t sampleUs = 0;      // micros() time of the last good reading.
+  bool started = false;       // Did begin() find the sensor?
+  bool valid = false;         // Is the latest reading usable?
+};
 // One complete proposal sent from the main loop to the motor safety guard.
 struct ControlFrame {
   MotorCommands commands;
